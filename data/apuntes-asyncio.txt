@@ -1,0 +1,31 @@
+# Asincronía en Python: apuntes de la clase de AI Engineering
+
+Asyncio sirve para tareas I/O-bound: esperar la red, una base de datos o una API.
+No acelera el cálculo. El tiempo en un sistema de IA no se gasta calculando (eso pasa
+en los servidores del proveedor), se gasta esperando, y esa espera se puede aprovechar.
+
+El event loop es el que reparte el trabajo. Cuando una corrutina llega a un await y
+tiene que esperar, el loop aprovecha para avanzar con otra tarea. Eso es concurrencia
+cooperativa, no paralelismo real.
+
+El punto de entrada moderno es asyncio.run(main()). Ya no se usa asyncio.get_event_loop()
+de forma descuidada porque quedo deprecado en las versiones nuevas.
+
+Para lanzar varias tareas a la vez se usa asyncio.gather, y conviene pasarle
+return_exceptions=True para que el error de una no tumbe a las demas.
+
+El bloqueo del event loop es el error mas peligroso. Si dentro de una funcion async se
+llama a una funcion sincrona que tarda (por ejemplo time.sleep en lugar de
+await asyncio.sleep), se detiene TODO el programa y ningun usuario mas recibe respuesta.
+La solucion para librerias viejas que no son async es asyncio.to_thread.
+
+Los timeouts son el seguro contra la latencia infinita: nunca hay que dejar una llamada
+abierta indefinidamente. Si el modelo tarda demasiado, se corta y se aplica un fallback.
+
+Los semaforos controlan cuantas tareas corren al mismo tiempo. Si se disparan mil
+llamadas juntas se recibe un error 429 de rate limit; el semaforo permite encolarlas
+pero ejecutar solo N en simultaneo.
+
+El streaming de tokens reduce el tiempo hasta el primer token (TTFT). En lugar de
+esperar los 500 tokens completos, se van enviando a medida que llegan desde la red,
+usando generadores asincronos con yield.
