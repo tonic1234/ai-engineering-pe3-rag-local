@@ -4,7 +4,7 @@ Pre-entrega 3 del curso **AI Engineering** (Coderhouse).
 Flujo RAG end-to-end **local**: ingesta de documentos → chunking por tokens → **ChromaDB**
 → recuperación por similitud → respuesta generada **solo** con el contexto recuperado.
 
-## Qué hay adentro
+## Archivos
 
 | Archivo | Qué hace |
 |---|---|
@@ -23,7 +23,7 @@ que hace que el RAG corra sobre un caso realista y no un texto genérico de prue
 política interna (rangos de antigüedad, plazos, requisitos). No son las políticas reales de
 la empresa ni contienen datos reales de nadie.
 
-## Cómo correrlo
+## Pasos para correrlo
 
 ```bash
 python -m venv .venv
@@ -69,7 +69,7 @@ colección ya existe (para no gastar tiempo ni cómputo); para forzarlo, usar
 }
 ```
 
-## Decisiones de diseño
+## Notas de implementación
 
 - **Chunking**: `RecursiveCharacterTextSplitter.from_tiktoken_encoder` con `chunk_size=500`
   y `chunk_overlap=50` **tokens** (no caracteres). El chunk_size es un techo, no un piso:

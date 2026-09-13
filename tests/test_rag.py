@@ -1,6 +1,6 @@
 """tests/test_rag.py — Pruebas de la ingesta y de la construcción del pipeline.
 
-APUNTE: el chunking y el armado del prompt no necesitan llamar a ningún modelo, así que
+Nota: el chunking y el armado del prompt no necesitan llamar a ningún modelo, así que
 se pueden testear completos sin API key ni descargar embeddings. Verifico:
   1. Que levante los documentos de /data y les ponga la metadata de la fuente.
   2. Que los chunks respeten el límite y TENGAN solape (si overlap=0 el test falla).

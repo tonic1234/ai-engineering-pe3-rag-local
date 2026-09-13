@@ -1,6 +1,6 @@
 """ingest.py — Ingesta: leer documentos, partirlos en chunks y guardarlos en ChromaDB.
 
-APUNTE DE CLASE (unidad de chunking):
+APUNTE (unidad de chunking):
 La idea del chunking es partir el texto en pedazos del tamaño justo. Si los hago muy
 chicos pierdo el contexto de la frase; si los hago muy grandes, el embedding "diluye" el
 significado y la búsqueda se vuelve imprecisa. La consigna pide ~500 tokens con 50 de

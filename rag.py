@@ -1,6 +1,6 @@
 """rag.py — Cadena de recuperación + generación "anclada" al contexto (grounded).
 
-APUNTE DE CLASE:
+APUNTE (el filtro de veracidad):
 El flujo es: pregunta -> embedding -> búsqueda por similitud en ChromaDB -> armo un
 prompt con los fragmentos encontrados -> el LLM responde SOLO con eso.
 
