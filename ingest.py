@@ -33,7 +33,7 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(messag
 logger = logging.getLogger(__name__)
 
 PERSIST_DIR = "./vectorstore"
-COLLECTION_NAME = "politicas_internas"
+COLLECTION_NAME = "dendra_politicas"
 DATA_DIR = Path("./data")
 
 # Modelo de embeddings local y gratuito (no requiere API key).

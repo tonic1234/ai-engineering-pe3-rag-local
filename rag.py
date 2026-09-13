@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 TOP_K = 4  # dentro del rango 3-5 que pide la consigna
 MODEL = "gemini-flash-latest"  # free tier: no pide tarjeta
 
-SYSTEM_PROMPT = """Eres un asistente técnico de Nordika S.A. Tu única fuente de verdad es el
+SYSTEM_PROMPT = """Eres un asistente técnico de Dendra. Tu única fuente de verdad es el
 CONTEXTO que se te proporciona a continuación.
 
 Reglas estrictas:

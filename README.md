@@ -13,6 +13,16 @@ Flujo RAG end-to-end **local**: ingesta de documentos → chunking por tokens �
 | `data/` | 4 políticas internas de ejemplo (`.txt`): vacaciones, teletrabajo, seguridad, onboarding. |
 | `tests/` | Pruebas del chunking, del `top_k` y del prompt "filtro de veracidad". |
 
+## Contexto del dataset
+
+Uso como dominio de ejemplo el de **Dendra**, la agencia donde trabajo: son documentos del
+tipo que existen en cualquier empresa (vacaciones, teletrabajo, seguridad, onboarding), lo
+que hace que el RAG corra sobre un caso realista y no un texto genérico de prueba.
+
+**Importante**: el contenido de los `.txt` es **inventado** — solo imita la lógica de una
+política interna (rangos de antigüedad, plazos, requisitos). No son las políticas reales de
+la empresa ni contienen datos reales de nadie.
+
 ## Cómo correrlo
 
 ```bash
