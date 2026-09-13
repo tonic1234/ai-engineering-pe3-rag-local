@@ -23,6 +23,7 @@ import logging
 from functools import lru_cache
 from typing import List
 
+from dotenv import load_dotenv
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
 from langchain_core.output_parsers import PydanticOutputParser
@@ -31,6 +32,9 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from pydantic import BaseModel, Field
 
 from ingest import COLLECTION_NAME, PERSIST_DIR, get_embeddings
+
+# Cargo las variables del .env (la API key de Gemini) para que el script corra solo.
+load_dotenv()
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
