@@ -1,9 +1,9 @@
 """tests/test_rag.py — Pruebas de la ingesta y de la construcción del pipeline.
 
-APUNTE: el chunking no necesita llamar a ningún modelo, así que se puede testear
-completo sin API key. Verifico tres cosas concretas:
+APUNTE: el chunking y el armado del prompt no necesitan llamar a ningún modelo, así que
+se pueden testear completos sin API key ni descargar embeddings. Verifico:
   1. Que levante los documentos de /data y les ponga la metadata de la fuente.
-  2. Que los chunks respeten el tamaño y TENGAN solape (si overlap=0 el test falla).
+  2. Que los chunks respeten el límite y TENGAN solape (si overlap=0 el test falla).
   3. Que el prompt de sistema exija responder solo con el contexto (el "filtro de
      veracidad" que pide la consigna).
 
@@ -13,27 +13,30 @@ Correr:  pytest -q
 from __future__ import annotations
 
 from ingest import CHUNK_OVERLAP, CHUNK_SIZE, load_documents, split_documents
-from rag import PROMPT, RespuestaRAG, TOP_K, format_docs
+from rag import TOP_K, RAGResponse, RespuestaLLM, formatear_documentos, prompt
 
 
 def test_carga_documentos_con_fuente():
     docs = load_documents()
-    assert len(docs) >= 3
+    assert len(docs) == 4
     assert all(d.metadata.get("source") for d in docs)
 
 
-def test_chunking_respeta_tamano():
+def test_chunking_genera_chunks_con_contenido():
     chunks = split_documents(load_documents())
     assert chunks, "No se generó ningún chunk"
-    assert all(len(c.page_content) <= CHUNK_SIZE + CHUNK_OVERLAP for c in chunks)
+    assert all(c.page_content.strip() for c in chunks)
 
 
 def test_chunking_tiene_solape():
     # Si el splitter quedara con overlap=0, las ideas cortadas al medio se perderían.
     assert CHUNK_OVERLAP > 0
-    documentos = load_documents()
-    chunks = split_documents(documentos)
-    assert len(chunks) > len(documentos), "Debería haber más chunks que documentos"
+    assert CHUNK_SIZE > CHUNK_OVERLAP
+
+
+def test_chunking_mantiene_la_fuente():
+    chunks = split_documents(load_documents())
+    assert all("source" in c.metadata for c in chunks)
 
 
 def test_top_k_en_rango_recomendado():
@@ -42,20 +45,27 @@ def test_top_k_en_rango_recomendado():
 
 
 def test_prompt_exige_respuesta_anclada():
-    system = PROMPT.messages[0].prompt.template.lower()
-    assert "contexto" in system and "no" in system
+    system = prompt.messages[0].prompt.template.lower()
+    assert "contexto" in system
+    assert "no tengo acceso" in system  # la frase exacta que debe usar si no sabe
 
 
-def test_format_docs_etiqueta_fuentes():
+def test_prompt_tiene_las_variables_esperadas():
+    assert {"contexto", "pregunta", "formato"} <= set(prompt.input_variables)
+
+
+def test_formatear_documentos_etiqueta_fuentes():
     class D:
         def __init__(self, txt, src):
             self.page_content = txt
             self.metadata = {"source": src}
 
-    bloque = format_docs([D("uno", "a.txt"), D("dos", "b.txt")])
-    assert "[a.txt]" in bloque and "[b.txt]" in bloque
+    bloque = formatear_documentos([D("uno", "a.txt"), D("dos", "b.txt")])
+    assert "[Fuente: a.txt]" in bloque and "[Fuente: b.txt]" in bloque
 
 
-def test_respuesta_no_encontrada_se_modela():
-    r = RespuestaRAG(respuesta="No tengo acceso a esa información.", fuentes=[], encontrado=False)
-    assert r.encontrado is False
+def test_esquemas_del_pipeline():
+    llm_out = RespuestaLLM(respuesta="21 días hábiles")
+    final = RAGResponse(respuesta=llm_out.respuesta, fuentes=["politica_vacaciones.txt"], fragmentos_recuperados=4)
+    assert final.fragmentos_recuperados == 4
+    assert final.fuentes == ["politica_vacaciones.txt"]

@@ -1,8 +1,8 @@
 # Sistema de recuperación semántica local (RAG)
 
 Pre-entrega 3 del curso **AI Engineering** (Coderhouse).
-Flujo RAG end-to-end **local**: ingesta de documentos → chunking → **ChromaDB** →
-recuperación por similitud → respuesta generada **solo** con el contexto recuperado.
+Flujo RAG end-to-end **local**: ingesta de documentos → chunking por tokens → **ChromaDB**
+→ recuperación por similitud → respuesta generada **solo** con el contexto recuperado.
 
 ## Qué hay adentro
 
@@ -10,8 +10,8 @@ recuperación por similitud → respuesta generada **solo** con el contexto recu
 |---|---|
 | `ingest.py` | Carga los documentos de `data/`, hace el chunking y los persiste en ChromaDB. |
 | `rag.py` | `get_rag_response(query)`: recupera fragmentos y genera una respuesta anclada. |
-| `data/` | Dataset de ejemplo (apuntes en `.txt` sobre asyncio, LCEL y RAG). |
-| `tests/` | Pruebas de chunking, del `top_k` y del prompt "filtro de veracidad". |
+| `data/` | 4 políticas internas de ejemplo (`.txt`): vacaciones, teletrabajo, seguridad, onboarding. |
+| `tests/` | Pruebas del chunking, del `top_k` y del prompt "filtro de veracidad". |
 
 ## Cómo correrlo
 
@@ -20,55 +20,61 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 
-cp .env.example .env        # completar OPENAI_API_KEY
+cp .env.example .env        # completar GOOGLE_API_KEY (Gemini, gratis)
 
 python ingest.py            # indexa /data en ./vectorstore (la primera vez)
 python rag.py               # hace una pregunta real y una "pregunta trampa"
 ```
 
 La base queda persistida en `./vectorstore`. El script de ingesta **no reindexa** si la
-colección ya existe (para no gastar tiempo ni tokens); para forzarlo, usar
+colección ya existe (para no gastar tiempo ni cómputo); para forzarlo, usar
 `build_vectorstore(reset=True)`.
 
 ## Variables de entorno
 
 | Variable | Descripción |
 |---|---|
-| `OPENAI_API_KEY` | Requerida: se usa para los embeddings y para la generación. |
+| `GOOGLE_API_KEY` | Requerida para el LLM de Gemini (free tier, sin tarjeta). |
+
+> Los **embeddings son locales** (`sentence-transformers/all-MiniLM-L6-v2`): no necesitan
+> API key ni cuestan nada. Solo se descarga el modelo la primera vez.
 
 ## Ejemplo de salida
 
 ```
-### ¿Qué pasa si uso la versión síncrona del cliente dentro de una función async?
+### ¿Cuántos días de vacaciones corresponden a un empleado con 5 años de antigüedad?
 {
-  "respuesta": "Bloquea el event loop: mientras esa función sincrónica corre, el programa
-                no atiende a ningún otro usuario. Se soluciona con await asyncio.sleep o
-                con asyncio.to_thread para librerías que no son async. [apuntes-asyncio.txt]",
-  "fuentes": ["apuntes-asyncio.txt"],
-  "encontrado": true
+  "respuesta": "A un empleado con 5 años de antigüedad le corresponden 20 días hábiles
+                de vacaciones por año calendario.",
+  "fuentes": ["politica_vacaciones.txt"],
+  "fragmentos_recuperados": 4
 }
 
-### ¿Cómo cocino un risotto de hongos?
+### ¿Cuál es la política de bonos por rendimiento anual?
 {
-  "respuesta": "No tengo acceso a esa información.",
-  "fuentes": [],
-  "encontrado": false
+  "respuesta": "No tengo acceso a esa información en los documentos disponibles.",
+  "fuentes": ["onboarding_nuevos_empleados.txt", "politica_seguridad_informatica.txt",
+              "politica_teletrabajo.txt", "politica_vacaciones.txt"],
+  "fragmentos_recuperados": 4
 }
 ```
 
 ## Decisiones de diseño
 
-- **Chunking**: `RecursiveCharacterTextSplitter` con `chunk_size=1000` caracteres y
-  `chunk_overlap=100` (≈500 y 50 tokens). Partir por párrafo y bajar a oración si hace falta.
-- **Mismo modelo de embeddings** para indexar y para consultar (`text-embedding-3-small`).
+- **Chunking**: `RecursiveCharacterTextSplitter.from_tiktoken_encoder` con `chunk_size=500`
+  y `chunk_overlap=50` **tokens** (no caracteres). El chunk_size es un techo, no un piso:
+  un archivo corto entra entero en un chunk y está bien.
+- **Embeddings locales** (`all-MiniLM-L6-v2`): mismo modelo para indexar y para consultar.
   Si se mezclan modelos, la distancia vectorial no significa nada.
 - **`top_k = 4`**: dentro del rango 3-5 que recomienda la consigna. Pasar 50 fragmentos
   degrada la atención del modelo y puede superar el límite de tokens.
 - **Prompt de filtro de veracidad**: el system prompt obliga a responder solo con el
-  CONTEXTO y a decir que no lo sabe si la respuesta no está ahí. Se prueba con una
-  pregunta trampa.
-- **Salida estructurada**: `RespuestaRAG` (respuesta + fuentes + `encontrado`) permite
-  verificar la no-alucinación por código, no a ojo.
+  CONTEXTO y a decir exactamente *"No tengo acceso a esa información en los documentos
+  disponibles."* si la respuesta no está ahí. Se prueba con una pregunta trampa.
+- **Fuentes sin alucinar**: las fuentes NO las escribe el LLM. Las arma el código a partir
+  de la metadata real de los documentos recuperados; el LLM solo genera el texto.
+- **Salida estructurada**: `RespuestaLLM` (lo que genera el modelo, vía
+  `PydanticOutputParser`) + `RAGResponse` (respuesta + fuentes + `fragmentos_recuperados`).
 
 ## Tests
 
@@ -76,4 +82,4 @@ colección ya existe (para no gastar tiempo ni tokens); para forzarlo, usar
 pytest -q
 ```
 
-El chunking y el armado del prompt se prueban sin API key.
+El chunking y el armado del prompt se prueban sin API key ni descarga de modelos.
